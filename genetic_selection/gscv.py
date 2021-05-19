@@ -39,6 +39,7 @@ from deap import base
 from deap import creator
 from deap import tools
 
+import logging
 
 creator.create("Fitness", base.Fitness, weights=(1.0, -1.0))
 creator.create("Individual", list, fitness=creator.Fitness)
@@ -64,7 +65,9 @@ def _eaFunction(population, toolbox, cxpb, mutpb, ngen, ngen_no_change=None, sta
     record = stats.compile(population) if stats else {}
     logbook.record(gen=0, nevals=len(invalid_ind), **record)
     if verbose:
-        print(logbook.stream)
+        msg = logbook.stream
+        print(msg)
+        logging.info(msg)
 
     # Begin the generational process
     wait = 0
@@ -97,7 +100,9 @@ def _eaFunction(population, toolbox, cxpb, mutpb, ngen, ngen_no_change=None, sta
         record = stats.compile(population) if stats else {}
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
-            print(logbook.stream)
+            msg = logbook.stream
+            print(msg)
+            logging.info(msg)
 
         # If the new best individual is the same as the previous best individual,
         # increment a counter, otherwise reset the counter
@@ -244,7 +249,7 @@ class GeneticSelectionCV(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
                  verbose=0, n_jobs=1, n_population=300, crossover_proba=0.5, mutation_proba=0.2,
                  n_generations=40, crossover_independent_proba=0.1,
                  mutation_independent_proba=0.05, tournament_size=3, n_gen_no_change=None,
-                 caching=False):
+                 caching=False, logging_file='sklearn_genetic.log'):
         self.estimator = estimator
         self.cv = cv
         self.scoring = scoring
@@ -262,6 +267,15 @@ class GeneticSelectionCV(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
         self.n_gen_no_change = n_gen_no_change
         self.caching = caching
         self.scores_cache = {}
+        
+        # enables logging to file
+        self.logging_file = logging_file
+        logging.basicConfig(
+            filename=self.logging_file, 
+            format='%(asctime)s %(message)s', 
+            datefmt='%Y-%m-%d %H:%M:%S', 
+            level=logging.INFO
+        )
 
     @property
     def _estimator_type(self):
@@ -339,7 +353,9 @@ class GeneticSelectionCV(BaseEstimator, MetaEstimatorMixin, SelectorMixin):
         stats.register("max", np.max, axis=0)
 
         if self.verbose > 0:
-            print("Selecting features with genetic algorithm.")
+            msg = "Selecting features with genetic algorithm."
+            print(msg)
+            logging.info(msg)
 
         _, log = _eaFunction(pop, toolbox, cxpb=self.crossover_proba, mutpb=self.mutation_proba,
                              ngen=self.n_generations, ngen_no_change=self.n_gen_no_change,
